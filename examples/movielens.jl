@@ -108,7 +108,7 @@ const k = 100
 # benchmark the oracles
 FrankWolfe.benchmark_oracles(
     f,
-    (str, x) -> grad!(str, x),
+    grad!,
     () -> randn(size(rating_matrix)),
     lmo;
     k=100,
@@ -117,7 +117,8 @@ FrankWolfe.benchmark_oracles(
 gradient = spzeros(size(x0)...)
 gradient_aux = spzeros(size(x0)...)
 
-# pushes to the trajectory the first 5 elements of the trajectory and the test value at the current iterate
+# pushes to the trajectory array the first 5 elements of the
+# state and the test value at the current iterate
 function build_callback(trajectory_arr)
     function callback(state)
         push!(
@@ -213,10 +214,19 @@ xlazy, _, _, _, _ = FrankWolfe.lazified_conditional_gradient(
 @info "Gdescent test loss: $(test_loss(xgd))"
 @info "FW test loss: $(test_loss(xfin))"
 @info "LCG test loss: $(test_loss(xlazy))"
+# [ Info: Gdescent test loss: 1.734139324871269e8
+# [ Info: FW test loss: 3.469503602108433e7
+# [ Info: LCG test loss: 3.698171217389289e7
+
+@info "Gdescent rank: $(rank(xgd))"
+@info "FW rank: $(rank(xfin))"
+@info "LCG rank: $(rank(xlazy))"
+# [ Info: Gdescent rank: 610
+# [ Info: FW rank: 95
+# [ Info: LCG rank: 80
 
 fw_test_values = getindex.(trajectory_arr_fw, 6)
 lazy_test_values = getindex.(trajectory_arr_lazy, 6)
-
 
 open(joinpath(@__DIR__, "movielens_result.json"), "w") do f
     data = JSON.json(
@@ -249,23 +259,29 @@ pit = plot(
     xguidefontsize=8,
     legendfontsize=8,
     legend=:bottomleft,
+    width=2,
 )
 plot!(
     getindex.(trajectory_arr_lazy, 1),
     getindex.(trajectory_arr_lazy, 2),
     label="LCG",
+    linestyle=:dash,
+    width=2,
 )
-plot!(eachindex(function_values), function_values, yaxis=:log, label="GD")
-plot!(eachindex(function_test_values), function_test_values, label="GD_test")
+plot!(eachindex(function_values), function_values, yaxis=:log, label="GD", width=2)
+plot!(eachindex(function_test_values), function_test_values, label="GD_test", width=2)
 plot!(
     getindex.(trajectory_arr_fw, 1),
     getindex.(trajectory_arr_fw, 6),
     label="FW_T",
+    width=2,
 )
 plot!(
     getindex.(trajectory_arr_lazy, 1),
     getindex.(trajectory_arr_lazy, 6),
     label="LCG_T",
+    width=2,
+    linestyle=:dash,
 )
 savefig(pit, "objective_func_vs_iteration.pdf")
 
@@ -281,25 +297,31 @@ pit = plot(
     xguidefontsize=8,
     legendfontsize=8,
     legend=:bottomleft,
+    width=2,
 )
 
 plot!(
     getindex.(trajectory_arr_lazy, 5),
     getindex.(trajectory_arr_lazy, 2),
     label="LCG",
-)
-plot!(
-    getindex.(trajectory_arr_lazy, 5),
-    getindex.(trajectory_arr_lazy, 6),
-    label="LCG_T",
+    width=2,
+    linestyle=:dash,
 )
 plot!(
     getindex.(trajectory_arr_fw, 5),
     getindex.(trajectory_arr_fw, 6),
     label="FW_T",
+    width=2,
+    )
+plot!(
+    getindex.(trajectory_arr_lazy, 5),
+    getindex.(trajectory_arr_lazy, 6),
+    label="LCG_T",
+    width=2,
+    linestyle=:dash,
 )
 
-plot!(timing_values, function_values, label="GD", yaxis=:log)
-plot!(timing_values, function_test_values, label="GD_test")
+plot!(timing_values, function_values, label="GD", yaxis=:log, width=2)
+plot!(timing_values, function_test_values, label="GD_test", width=2)
 
 savefig(pit, "objective_func_vs_time.pdf")
